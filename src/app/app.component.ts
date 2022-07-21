@@ -2,7 +2,7 @@ import {Component, OnInit} from '@angular/core';
 import {ITodo} from "./models/todo.model";
 import {TodosService} from "./services/todos.service";
 import {FormBuilder, FormGroup} from "@angular/forms";
-import {debounceTime, distinctUntilChanged, map, Observable, Subject, takeUntil} from "rxjs";
+import {debounceTime, distinctUntilChanged, forkJoin, mergeMap, Subject, takeUntil} from "rxjs";
 
 @Component({
   selector: 'app-root',
@@ -11,7 +11,7 @@ import {debounceTime, distinctUntilChanged, map, Observable, Subject, takeUntil}
 })
 export class AppComponent implements OnInit {
   private _unsubscribe$ = new Subject()
-  todos$: Observable<ITodo[]> | undefined
+  todos: ITodo[] = []
   todosForm!: FormGroup;
   profileForm!: FormGroup;
   edit: boolean = false
@@ -21,8 +21,7 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     this._initializeForm()
-    this._getProfile()
-    this._getAllTodos()
+    this._getAllData()
     this._autoRefresh()
   }
 
@@ -32,41 +31,38 @@ export class AppComponent implements OnInit {
       title: [''],
       author: ['']
     })
-
     this.profileForm = this.fb.group({
       name: ['']
     })
-
     this.updateProfile();
   }
 
-  private _getProfile() {
-    this.todosService.getProfile().subscribe((profile) => {
-      this.profileForm.patchValue(profile)
+  private _getAllData() {
+    forkJoin({
+      profileOptions: this.todosService.getProfile(),
+      todoOptions: this.todosService.getAllTodos(),
     })
-  }
-
-  private _getAllTodos() {
-    this.todos$ = this.todosService.getAllTodos()
+      .pipe(takeUntil(this._unsubscribe$))
+      .subscribe((res) => {
+        this.profileForm.patchValue(res.profileOptions)
+        this.todos = res.todoOptions
+      })
   }
 
   private _autoRefresh(): void {
     this.todosService.refresh$
       .pipe(takeUntil(this._unsubscribe$))
-      .subscribe(() => this._getAllTodos())
+      .subscribe(() => this._getAllData())
   }
 
   updateProfile() {
     this.profileForm.get('name')?.valueChanges.pipe(
       debounceTime(400),
       distinctUntilChanged(),
+      mergeMap((name) => this.todosService.updateProfile(name)),
       takeUntil(this._unsubscribe$)
     )
-      .subscribe((name) => {
-        this.todosService.updateProfile(name).subscribe((profile) => {
-          this.profileForm.patchValue(profile)
-        })
-      });
+      .subscribe((profile) => this.profileForm.patchValue(profile));
   }
 
   save() {
