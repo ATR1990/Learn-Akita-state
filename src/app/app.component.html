@@ -15,8 +15,8 @@
   <ul>
     <li *ngFor="let todo of todos">
       <i>{{todo.title}}:</i> {{todo.author}}
-      <button (click)="deleteTodo(todo.id)">X</button>
-      <button (click)="getTodo(todo.id)">Edit</button>
+      <button (click)="deleteTodo(+todo.id)">X</button>
+      <button (click)="getTodo(+todo.id)">Edit</button>
     </li>
   </ul>
 </form>

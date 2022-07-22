@@ -1,19 +1,19 @@
 import { Injectable } from '@angular/core';
 import { Store, StoreConfig } from '@datorama/akita';
 
-export interface TodosState {
-  key: string;
+export interface ProfileState {
+  name: string;
 }
 
-export function createInitialState(): TodosState {
+export function createInitialState(): ProfileState {
   return {
-    key: ''
+    name: ''
   };
 }
 
 @Injectable({ providedIn: 'root' })
-@StoreConfig({ name: 'todos' })
-export class TodosStore extends Store<TodosState> {
+@StoreConfig({ name: 'profile' })
+export class ProfileStore extends Store<ProfileState> {
 
   constructor() {
     super(createInitialState());
